@@ -22,7 +22,7 @@ func main() {
 	srv := server.NewServer(port)
 
 	go func() {
-		log.Printf("[dashboard] starting on http://localhost:%s", port)
+		log.Printf("[dashboard] starting on http://0.0.0.0:%s", port)
 		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("[dashboard] server error: %v", err)
 		}

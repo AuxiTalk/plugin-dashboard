@@ -2,22 +2,34 @@ package templates
 
 templ Index() {
 	@Layout("Dashboard") {
-		<h1>AuxiTalk Dashboard</h1>
-
-		<div class="card">
-			<h2>Status</h2>
-			<p>Core is running</p>
-			<p>Mode: dev</p>
+		<div class="mb-8">
+			<h1 class="text-3xl font-semibold">Dashboard</h1>
+			<p class="text-zinc-400 mt-1">AuxiTalk Core is running</p>
 		</div>
 
-		<div class="card">
-			<h2>Plugins</h2>
-			<p>No plugins loaded yet.</p>
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+				<div class="text-sm text-zinc-400">Status</div>
+				<div class="text-2xl font-semibold mt-1">Running</div>
+				<div class="text-emerald-400 text-sm mt-2">Mode: dev</div>
+			</div>
+
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+				<div class="text-sm text-zinc-400">Plugins</div>
+				<div class="text-2xl font-semibold mt-1">3 loaded</div>
+			</div>
+
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+				<div class="text-sm text-zinc-400">Active Sessions</div>
+				<div class="text-2xl font-semibold mt-1">2</div>
+			</div>
 		</div>
 
-		<div class="card">
-			<h2>Sessions</h2>
-			<p>No active sessions.</p>
+		<div class="mt-10">
+			<h2 class="text-xl font-semibold mb-4">Recent Suggestions</h2>
+			<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-sm text-zinc-400">
+				No suggestions yet.
+			</div>
 		</div>
 	}
 }

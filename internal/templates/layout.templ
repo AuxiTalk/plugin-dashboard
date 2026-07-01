@@ -7,26 +7,26 @@ templ Layout(title string) {
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>{ title } - AuxiTalk</title>
+		<script src="https://cdn.tailwindcss.com"></script>
 		<script src="https://unpkg.com/htmx.org@1.9.12"></script>
-		<style>
-			body { font-family: system-ui, sans-serif; margin: 0; background: #f8f9fa; }
-			nav { background: #1a1a2e; padding: 15px 40px; }
-			nav a { color: white; text-decoration: none; margin-right: 20px; }
-			nav a:hover { text-decoration: underline; }
-			.container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-			.card { background: white; border: 1px solid #ddd; padding: 24px; margin-bottom: 24px; border-radius: 8px; }
-			h1 { margin-top: 0; }
-		</style>
 	</head>
-	<body>
-		<nav>
-			<a href="/">Dashboard</a>
-			<a href="/plugins">Plugins</a>
-			<a href="/sessions">Sessions</a>
-			<a href="/events">Events</a>
-			<a href="/actions">Actions</a>
+	<body class="bg-zinc-950 text-zinc-200">
+		<nav class="bg-zinc-900 border-b border-zinc-800 px-8 py-4">
+			<div class="max-w-6xl mx-auto flex items-center justify-between">
+				<div class="flex items-center gap-8">
+					<div class="font-semibold text-xl">AuxiTalk</div>
+					<div class="flex gap-6 text-sm">
+						<a href="/" class="hover:text-white">Dashboard</a>
+						<a href="/plugins" class="hover:text-white">Plugins</a>
+						<a href="/sessions" class="hover:text-white">Sessions</a>
+						<a href="/events" class="hover:text-white">Events</a>
+						<a href="/actions" class="hover:text-white">Actions</a>
+					</div>
+				</div>
+				<div class="text-xs px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded">dev</div>
+			</div>
 		</nav>
-		<div class="container">
+		<div class="max-w-6xl mx-auto px-8 py-10">
 			{ children... }
 		</div>
 	</body>

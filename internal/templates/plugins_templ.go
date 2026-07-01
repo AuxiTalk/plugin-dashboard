@@ -41,7 +41,7 @@ func Plugins() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Plugins</h1><div class=\"card\"><p>No plugins loaded.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1 class=\"text-3xl font-semibold mb-8\">Plugins</h1><div class=\"bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden\"><table class=\"w-full text-sm\"><thead class=\"bg-zinc-950\"><tr><th class=\"px-6 py-4 text-left\">ID</th><th class=\"px-6 py-4 text-left\">Name</th><th class=\"px-6 py-4 text-left\">Kind</th><th class=\"px-6 py-4 text-left\">Status</th></tr></thead> <tbody class=\"divide-y divide-zinc-800\"><tr><td class=\"px-6 py-4 font-mono text-xs\">dashboard</td><td class=\"px-6 py-4\">Dashboard</td><td class=\"px-6 py-4\"><span class=\"px-2 py-0.5 text-xs bg-blue-500/10 text-blue-400 rounded\">ui</span></td><td class=\"px-6 py-4\"><span class=\"text-emerald-400\">running</span></td></tr><tr><td class=\"px-6 py-4 font-mono text-xs\">mock-input</td><td class=\"px-6 py-4\">Mock Input</td><td class=\"px-6 py-4\"><span class=\"px-2 py-0.5 text-xs bg-zinc-700 rounded\">input</span></td><td class=\"px-6 py-4\"><span class=\"text-emerald-400\">running</span></td></tr><tr><td class=\"px-6 py-4 font-mono text-xs\">mock-ai</td><td class=\"px-6 py-4\">Mock AI</td><td class=\"px-6 py-4\"><span class=\"px-2 py-0.5 text-xs bg-purple-500/10 text-purple-400 rounded\">ai</span></td><td class=\"px-6 py-4\"><span class=\"text-emerald-400\">running</span></td></tr></tbody></table></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

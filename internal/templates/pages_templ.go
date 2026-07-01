@@ -41,7 +41,7 @@ func Sessions() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Sessions</h1><div class=\"card\"><p>No active sessions.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1 class=\"text-3xl font-semibold mb-8\">Active Sessions</h1><div class=\"bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-sm text-zinc-400\">No active sessions right now.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -88,7 +88,7 @@ func Events() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1>Events</h1><div class=\"card\"><p>No events yet.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1 class=\"text-3xl font-semibold mb-8\">Recent Events</h1><div class=\"bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-sm text-zinc-400\">No events yet.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -135,7 +135,7 @@ func Actions() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<h1>Actions</h1><div class=\"card\"><p>No pending actions.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<h1 class=\"text-3xl font-semibold mb-8\">Pending Actions</h1><div class=\"bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-sm text-zinc-400\">No pending actions.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -2,27 +2,27 @@ package templates
 
 templ Sessions() {
 	@Layout("Sessions") {
-		<h1>Sessions</h1>
-		<div class="card">
-			<p>No active sessions.</p>
+		<h1 class="text-3xl font-semibold mb-8">Active Sessions</h1>
+		<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-sm text-zinc-400">
+			No active sessions right now.
 		</div>
 	}
 }
 
 templ Events() {
 	@Layout("Events") {
-		<h1>Events</h1>
-		<div class="card">
-			<p>No events yet.</p>
+		<h1 class="text-3xl font-semibold mb-8">Recent Events</h1>
+		<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-sm text-zinc-400">
+			No events yet.
 		</div>
 	}
 }
 
 templ Actions() {
 	@Layout("Actions") {
-		<h1>Actions</h1>
-		<div class="card">
-			<p>No pending actions.</p>
+		<h1 class="text-3xl font-semibold mb-8">Pending Actions</h1>
+		<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-sm text-zinc-400">
+			No pending actions.
 		</div>
 	}
 }
