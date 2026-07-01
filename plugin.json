@@ -1,0 +1,10 @@
+{
+  "id": "dashboard",
+  "name": "Dashboard",
+  "version": "0.1.0",
+  "runtime": "./dashboard",
+  "entry": "",
+  "kind": "ui",
+  "permissions": ["event.emit"],
+  "capabilities": []
+}

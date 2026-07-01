@@ -1,0 +1,36 @@
+package templates
+
+templ Index() {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>AuxiTalk Dashboard</title>
+		<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+		<style>
+			body { font-family: system-ui, sans-serif; margin: 40px; }
+			h1 { margin-bottom: 20px; }
+			.card { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+		</style>
+	</head>
+	<body>
+		<h1>AuxiTalk Dashboard</h1>
+
+		<div class="card">
+			<h2>Status</h2>
+			<p>Core is running</p>
+		</div>
+
+		<div class="card">
+			<h2>Plugins</h2>
+			<p>No plugins loaded yet.</p>
+		</div>
+
+		<div class="card">
+			<h2>Sessions</h2>
+			<p>No active sessions.</p>
+		</div>
+	</body>
+	</html>
+}
