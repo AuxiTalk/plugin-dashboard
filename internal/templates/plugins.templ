@@ -2,35 +2,42 @@ package templates
 
 templ Plugins() {
 	@Layout("Plugins") {
-		<h1 class="text-3xl font-semibold mb-8">Plugins</h1>
+		<div class="flex items-center justify-between mb-8">
+			<h1 class="text-3xl font-semibold">Plugins</h1>
+			<div class="text-sm text-zinc-400">3 loaded</div>
+		</div>
 
-		<div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+		<div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
 			<table class="w-full text-sm">
-				<thead class="bg-zinc-950">
-					<tr>
-						<th class="px-6 py-4 text-left">ID</th>
-						<th class="px-6 py-4 text-left">Name</th>
-						<th class="px-6 py-4 text-left">Kind</th>
-						<th class="px-6 py-4 text-left">Status</th>
+				<thead>
+					<tr class="bg-zinc-950 border-b border-zinc-800">
+						<th class="px-6 py-4 text-left font-normal text-zinc-400">ID</th>
+						<th class="px-6 py-4 text-left font-normal text-zinc-400">Name</th>
+						<th class="px-6 py-4 text-left font-normal text-zinc-400">Kind</th>
+						<th class="px-6 py-4 text-left font-normal text-zinc-400">Capabilities</th>
+						<th class="px-6 py-4 text-left font-normal text-zinc-400">Status</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-zinc-800">
-					<tr>
-						<td class="px-6 py-4 font-mono text-xs">dashboard</td>
-						<td class="px-6 py-4">Dashboard</td>
-						<td class="px-6 py-4"><span class="px-2 py-0.5 text-xs bg-blue-500/10 text-blue-400 rounded">ui</span></td>
+					<tr class="hover:bg-zinc-950/50">
+						<td class="px-6 py-4 font-mono text-xs text-zinc-400">dashboard</td>
+						<td class="px-6 py-4 font-medium">Dashboard</td>
+						<td class="px-6 py-4"><span class="inline-block px-2.5 py-0.5 text-xs rounded bg-blue-500/10 text-blue-400">ui</span></td>
+						<td class="px-6 py-4 text-zinc-400">—</td>
 						<td class="px-6 py-4"><span class="text-emerald-400">running</span></td>
 					</tr>
-					<tr>
-						<td class="px-6 py-4 font-mono text-xs">mock-input</td>
-						<td class="px-6 py-4">Mock Input</td>
-						<td class="px-6 py-4"><span class="px-2 py-0.5 text-xs bg-zinc-700 rounded">input</span></td>
+					<tr class="hover:bg-zinc-950/50">
+						<td class="px-6 py-4 font-mono text-xs text-zinc-400">mock-input</td>
+						<td class="px-6 py-4 font-medium">Mock Input</td>
+						<td class="px-6 py-4"><span class="inline-block px-2.5 py-0.5 text-xs rounded bg-zinc-700">input</span></td>
+						<td class="px-6 py-4 text-zinc-400">conversation.observe</td>
 						<td class="px-6 py-4"><span class="text-emerald-400">running</span></td>
 					</tr>
-					<tr>
-						<td class="px-6 py-4 font-mono text-xs">mock-ai</td>
-						<td class="px-6 py-4">Mock AI</td>
-						<td class="px-6 py-4"><span class="px-2 py-0.5 text-xs bg-purple-500/10 text-purple-400 rounded">ai</span></td>
+					<tr class="hover:bg-zinc-950/50">
+						<td class="px-6 py-4 font-mono text-xs text-zinc-400">mock-ai</td>
+						<td class="px-6 py-4 font-medium">Mock AI</td>
+						<td class="px-6 py-4"><span class="inline-block px-2.5 py-0.5 text-xs rounded bg-purple-500/10 text-purple-400">ai</span></td>
+						<td class="px-6 py-4 text-zinc-400">ai.complete</td>
 						<td class="px-6 py-4"><span class="text-emerald-400">running</span></td>
 					</tr>
 				</tbody>

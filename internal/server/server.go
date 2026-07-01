@@ -14,29 +14,33 @@ type Server struct {
 func NewServer(port string) *Server {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.Index().Render(r.Context(), w)
+	mux.HandleFunc("/", render(templates.Index()))
+	mux.HandleFunc("/plugins", render(templates.Plugins()))
+	mux.HandleFunc("/sessions", render(templates.Sessions()))
+	mux.HandleFunc("/events", render(templates.Events()))
+	mux.HandleFunc("/actions", render(templates.Actions()))
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"ok":true,"service":"auxitalk-dashboard"}`))
 	})
 
-	mux.HandleFunc("/plugins", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/actions/approve", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.Plugins().Render(r.Context(), w)
+		w.Write([]byte(`<div class="text-emerald-400">Action approved.</div>`))
 	})
 
-	mux.HandleFunc("/sessions", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/actions/reject", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.Sessions().Render(r.Context(), w)
-	})
-
-	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.Events().Render(r.Context(), w)
-	})
-
-	mux.HandleFunc("/actions", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		templates.Actions().Render(r.Context(), w)
+		w.Write([]byte(`<div class="text-red-400">Action rejected.</div>`))
 	})
 
 	return &Server{

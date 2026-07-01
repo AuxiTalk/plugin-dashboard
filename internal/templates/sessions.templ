@@ -1,0 +1,36 @@
+package templates
+
+templ Sessions() {
+	@Layout("Sessions") {
+		<div class="flex items-center justify-between mb-8">
+			<h1 class="text-3xl font-semibold">Sessions</h1>
+			<div class="text-sm text-zinc-400">2 active</div>
+		</div>
+
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+				<div class="flex items-center justify-between mb-4">
+					<div>
+						<div class="font-semibold">WhatsApp / João</div>
+						<div class="text-xs text-zinc-500">session_mock_001</div>
+					</div>
+					<span class="text-xs text-emerald-400">active</span>
+				</div>
+				<div class="text-sm text-zinc-400">Last message: “Fechado, te aviso em seguida.”</div>
+				<div class="text-xs text-zinc-500 mt-4">Messages: 14 • Suggestions: 3</div>
+			</div>
+
+			<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+				<div class="flex items-center justify-between mb-4">
+					<div>
+						<div class="font-semibold">Telegram / Client</div>
+						<div class="text-xs text-zinc-500">session_mock_002</div>
+					</div>
+					<span class="text-xs text-amber-400">waiting</span>
+				</div>
+				<div class="text-sm text-zinc-400">Last message: “Can you send the proposal?”</div>
+				<div class="text-xs text-zinc-500 mt-4">Messages: 7 • Suggestions: 1</div>
+			</div>
+		</div>
+	}
+}
