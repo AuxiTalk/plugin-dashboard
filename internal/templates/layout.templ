@@ -1,0 +1,34 @@
+package templates
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>{ title } - AuxiTalk</title>
+		<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+		<style>
+			body { font-family: system-ui, sans-serif; margin: 0; background: #f8f9fa; }
+			nav { background: #1a1a2e; padding: 15px 40px; }
+			nav a { color: white; text-decoration: none; margin-right: 20px; }
+			nav a:hover { text-decoration: underline; }
+			.container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+			.card { background: white; border: 1px solid #ddd; padding: 24px; margin-bottom: 24px; border-radius: 8px; }
+			h1 { margin-top: 0; }
+		</style>
+	</head>
+	<body>
+		<nav>
+			<a href="/">Dashboard</a>
+			<a href="/plugins">Plugins</a>
+			<a href="/sessions">Sessions</a>
+			<a href="/events">Events</a>
+			<a href="/actions">Actions</a>
+		</nav>
+		<div class="container">
+			{ children... }
+		</div>
+	</body>
+	</html>
+}

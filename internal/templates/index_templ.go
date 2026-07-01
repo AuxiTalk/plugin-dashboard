@@ -29,7 +29,25 @@ func Index() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>AuxiTalk Dashboard</title><script src=\"https://unpkg.com/htmx.org@1.9.12\"></script><style>\n\t\t\tbody { font-family: system-ui, sans-serif; margin: 40px; }\n\t\t\th1 { margin-bottom: 20px; }\n\t\t\t.card { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; }\n\t\t</style></head><body><h1>AuxiTalk Dashboard</h1><div class=\"card\"><h2>Status</h2><p>Core is running</p></div><div class=\"card\"><h2>Plugins</h2><p>No plugins loaded yet.</p></div><div class=\"card\"><h2>Sessions</h2><p>No active sessions.</p></div></body></html>")
+		templ_7745c5c3_Var2 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+			if !templ_7745c5c3_IsBuffer {
+				defer func() {
+					templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err == nil {
+						templ_7745c5c3_Err = templ_7745c5c3_BufErr
+					}
+				}()
+			}
+			ctx = templ.InitializeContext(ctx)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>AuxiTalk Dashboard</h1><div class=\"card\"><h2>Status</h2><p>Core is running</p><p>Mode: dev</p></div><div class=\"card\"><h2>Plugins</h2><p>No plugins loaded yet.</p></div><div class=\"card\"><h2>Sessions</h2><p>No active sessions.</p></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			return nil
+		})
+		templ_7745c5c3_Err = Layout("Dashboard").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

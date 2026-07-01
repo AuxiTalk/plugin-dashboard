@@ -19,6 +19,26 @@ func NewServer(port string) *Server {
 		templates.Index().Render(r.Context(), w)
 	})
 
+	mux.HandleFunc("/plugins", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		templates.Plugins().Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("/sessions", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		templates.Sessions().Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		templates.Events().Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("/actions", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		templates.Actions().Render(r.Context(), w)
+	})
+
 	return &Server{
 		httpServer: &http.Server{
 			Addr:    ":" + port,
