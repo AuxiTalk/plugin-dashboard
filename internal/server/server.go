@@ -447,7 +447,7 @@ func (s *Server) workflowEdit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	data, _ := json.MarshalIndent(workflow, "", "  ")
-	content := fmt.Sprintf(`<div class="mb-4"><a class="text-sky-400 hover:underline" href="/workflows">← Cancel</a></div><form method="post" action="/workflows/save"><textarea name="json" class="w-full h-[60vh] bg-zinc-950 border border-zinc-800 rounded-2xl p-4 font-mono text-sm mb-4">%s</textarea><button type="submit" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold">Save Workflow</button></form>`, template.HTMLEscapeString(string(data)))
+	content := fmt.Sprintf(`<div class="mb-4"><a class="text-sky-400 hover:underline" href="/workflows">← Cancel</a></div><form method="post" action="/workflows/save" onsubmit="try{JSON.parse(this.json.value);return true;}catch(e){alert('Invalid JSON: '+e.message);return false;}"><textarea name="json" class="w-full h-[60vh] bg-zinc-950 border border-zinc-800 rounded-2xl p-4 font-mono text-sm mb-4" spellcheck="false">%s</textarea><button type="submit" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold">Save Workflow</button></form>`, template.HTMLEscapeString(string(data)))
 	s.render(w, "Edit Workflow", template.HTML(content))
 }
 
