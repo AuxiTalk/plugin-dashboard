@@ -192,7 +192,7 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 		statusByID[fmt.Sprint(status["id"])] = status
 	}
 	var b bytes.Buffer
-	b.WriteString(`<h2 class="text-2xl font-semibold mb-4">Plugins</h2><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Kind</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Last error</th></tr></thead><tbody>`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Plugins</h2><button class="px-4 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg" hx-get="/plugins" hx-target="body">Refresh</button></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Kind</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Last error</th></tr></thead><tbody>`)
 	for _, p := range configured {
 		id := fmt.Sprint(p["id"])
 		status := statusByID[id]
@@ -204,7 +204,11 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 			restarts = intFromAny(status["restarts"])
 			lastError = fmt.Sprint(status["lastError"])
 		}
-		b.WriteString(fmt.Sprintf(`<tr class="border-t border-zinc-800"><td class="p-3 font-mono">%s</td><td class="p-3">%s</td><td class="p-3">%s</td><td class="p-3">%v</td><td class="p-3">%v</td><td class="p-3">%d</td><td class="p-3 text-red-400">%s</td></tr>`, esc(id), esc(p["name"]), esc(p["kind"]), p["enabled"], running, restarts, esc(lastError)))
+		runningClass := "text-emerald-400"
+		if !running {
+			runningClass = "text-red-400"
+		}
+		b.WriteString(fmt.Sprintf(`<tr class="border-t border-zinc-800"><td class="p-3 font-mono">%s</td><td class="p-3">%s</td><td class="p-3">%s</td><td class="p-3">%v</td><td class="p-3 %s">%v</td><td class="p-3">%d</td><td class="p-3 text-red-400">%s</td></tr>`, esc(id), esc(p["name"]), esc(p["kind"]), p["enabled"], runningClass, running, restarts, esc(lastError)))
 	}
 	b.WriteString(`</tbody></table></div>`)
 	return template.HTML(b.String())
@@ -212,7 +216,7 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 
 func eventsList(events []map[string]any) template.HTML {
 	var b bytes.Buffer
-	b.WriteString(`<h2 class="text-2xl font-semibold mb-4">Events</h2><div class="bg-zinc-900 border border-zinc-800 rounded-2xl divide-y divide-zinc-800">`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Events</h2><button class="px-4 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg" hx-get="/events" hx-target="body">Refresh</button></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl divide-y divide-zinc-800">`)
 	for i := len(events) - 1; i >= 0; i-- {
 		e := events[i]
 		b.WriteString(fmt.Sprintf(`<div class="p-4"><div class="text-xs text-zinc-500 font-mono">%s</div><div><span class="text-emerald-400">●</span> %s from %s</div></div>`, esc(e["createdAt"]), esc(e["type"]), esc(e["source"])))
@@ -223,7 +227,7 @@ func eventsList(events []map[string]any) template.HTML {
 
 func actionsTable(actions []map[string]any) template.HTML {
 	var b bytes.Buffer
-	b.WriteString(`<h2 class="text-2xl font-semibold mb-4">Actions</h2><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Type</th><th class="p-3 text-left">Risk</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Source</th><th class="p-3 text-left">Controls</th></tr></thead><tbody>`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Actions</h2><button class="px-4 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg" hx-get="/actions" hx-target="body">Refresh</button></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Type</th><th class="p-3 text-left">Risk</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Source</th><th class="p-3 text-left">Controls</th></tr></thead><tbody>`)
 	for _, a := range actions {
 		id := esc(a["id"])
 		controls := "—"
