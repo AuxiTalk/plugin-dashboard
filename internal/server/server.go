@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -10,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/skip2/go-qrcode"
 )
 
 type Server struct {
@@ -39,6 +42,7 @@ func NewServer(port string) *Server {
 	mux.HandleFunc("/events", s.events)
 	mux.HandleFunc("/actions", s.actions)
 	mux.HandleFunc("/workflows", s.workflows)
+	mux.HandleFunc("/whatsapp/qr", s.whatsappQR)
 	mux.HandleFunc("/health", s.health)
 	mux.HandleFunc("/actions/approve", s.approve)
 	mux.HandleFunc("/actions/reject", s.reject)
@@ -114,6 +118,38 @@ func (s *Server) workflows(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "Workflows", workflowsTable(status.Workflows))
+}
+
+func (s *Server) whatsappQR(w http.ResponseWriter, r *http.Request) {
+	status, err := s.fetchStatus(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
+	var qrCode string
+	for i := len(status.Events) - 1; i >= 0; i-- {
+		e := status.Events[i]
+		if fmt.Sprint(e["type"]) == "whatsapp.qr" {
+			payload, _ := e["payload"].(map[string]any)
+			if code, ok := payload["code"].(string); ok {
+				qrCode = code
+				break
+			}
+		}
+	}
+	if qrCode == "" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<div class="text-zinc-500 text-sm">No QR code pending</div>`))
+		return
+	}
+	png, err := qrcode.Encode(qrCode, qrcode.Medium, 256)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	b64 := base64.StdEncoding.EncodeToString(png)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(fmt.Sprintf(`<img src="data:image/png;base64,%s" class="rounded-xl w-48 h-48 mx-auto">`, b64)))
 }
 
 func (s *Server) approve(w http.ResponseWriter, r *http.Request) {
@@ -192,7 +228,7 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 		statusByID[fmt.Sprint(status["id"])] = status
 	}
 	var b bytes.Buffer
-	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Plugins</h2><button class="px-4 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg" hx-get="/plugins" hx-target="body">Refresh</button></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Kind</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Last error</th></tr></thead><tbody>`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Plugins</h2></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden" hx-get="/plugins" hx-trigger="every 5s" hx-swap="outerHTML"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Kind</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Last error</th></tr></thead><tbody>`)
 	for _, p := range configured {
 		id := fmt.Sprint(p["id"])
 		status := statusByID[id]
@@ -208,7 +244,11 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 		if !running {
 			runningClass = "text-red-400"
 		}
-		b.WriteString(fmt.Sprintf(`<tr class="border-t border-zinc-800"><td class="p-3 font-mono">%s</td><td class="p-3">%s</td><td class="p-3">%s</td><td class="p-3">%v</td><td class="p-3 %s">%v</td><td class="p-3">%d</td><td class="p-3 text-red-400">%s</td></tr>`, esc(id), esc(p["name"]), esc(p["kind"]), p["enabled"], runningClass, running, restarts, esc(lastError)))
+		extra := ""
+		if id == "whatsapp" && running {
+			extra = `<div class="mt-4" hx-get="/whatsapp/qr" hx-trigger="load, every 5s">Loading QR...</div>`
+		}
+		b.WriteString(fmt.Sprintf(`<tr class="border-t border-zinc-800"><td class="p-3"><div class="font-mono">%s</div>%s</td><td class="p-3">%s</td><td class="p-3">%s</td><td class="p-3">%v</td><td class="p-3 %s">%v</td><td class="p-3">%d</td><td class="p-3 text-red-400">%s</td></tr>`, esc(id), extra, esc(p["name"]), esc(p["kind"]), p["enabled"], runningClass, running, restarts, esc(lastError)))
 	}
 	b.WriteString(`</tbody></table></div>`)
 	return template.HTML(b.String())
@@ -216,8 +256,13 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 
 func eventsList(events []map[string]any) template.HTML {
 	var b bytes.Buffer
-	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Events</h2><button class="px-4 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg" hx-get="/events" hx-target="body">Refresh</button></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl divide-y divide-zinc-800">`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Events</h2></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl divide-y divide-zinc-800" hx-get="/events" hx-trigger="every 5s" hx-swap="outerHTML">`)
+	count := 0
 	for i := len(events) - 1; i >= 0; i-- {
+		if count >= 50 {
+			break
+		}
+		count++
 		e := events[i]
 		b.WriteString(fmt.Sprintf(`<div class="p-4"><div class="text-xs text-zinc-500 font-mono">%s</div><div><span class="text-emerald-400">●</span> %s from %s</div></div>`, esc(e["createdAt"]), esc(e["type"]), esc(e["source"])))
 	}
@@ -227,8 +272,13 @@ func eventsList(events []map[string]any) template.HTML {
 
 func actionsTable(actions []map[string]any) template.HTML {
 	var b bytes.Buffer
-	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Actions</h2><button class="px-4 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-lg" hx-get="/actions" hx-target="body">Refresh</button></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Type</th><th class="p-3 text-left">Risk</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Source</th><th class="p-3 text-left">Controls</th></tr></thead><tbody>`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Actions</h2></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden" hx-get="/actions" hx-trigger="every 5s" hx-swap="outerHTML"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Type</th><th class="p-3 text-left">Risk</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Source</th><th class="p-3 text-left">Controls</th></tr></thead><tbody>`)
+	count := 0
 	for _, a := range actions {
+		if count >= 50 {
+			break
+		}
+		count++
 		id := esc(a["id"])
 		controls := "—"
 		status := fmt.Sprint(a["status"])
