@@ -18,11 +18,12 @@ type Server struct {
 }
 
 type Status struct {
-	Plugins        []map[string]any `json:"plugins"`
-	Events         []map[string]any `json:"events"`
-	Actions        []map[string]any `json:"actions"`
-	PendingActions []map[string]any `json:"pendingActions"`
-	Workflows      []map[string]any `json:"workflows"`
+	Plugins           []map[string]any `json:"plugins"`
+	ConfiguredPlugins []map[string]any `json:"configuredPlugins"`
+	Events            []map[string]any `json:"events"`
+	Actions           []map[string]any `json:"actions"`
+	PendingActions    []map[string]any `json:"pendingActions"`
+	Workflows         []map[string]any `json:"workflows"`
 }
 
 func NewServer(port string) *Server {
@@ -75,7 +76,7 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
   <div>%s</div>
   <div>%s</div>
-</div>`, statCard("Plugins", len(status.Plugins)), statCard("Events", len(status.Events)), statCard("Actions", len(status.Actions)), statCard("Workflows", len(status.Workflows)), pluginsTable(status.Plugins), actionsTable(status.Actions))
+</div>`, statCard("Plugins", len(status.Plugins)), statCard("Events", len(status.Events)), statCard("Actions", len(status.Actions)), statCard("Workflows", len(status.Workflows)), pluginsTable(status.ConfiguredPlugins, status.Plugins), actionsTable(status.Actions))
 	s.render(w, "Dashboard", template.HTML(content))
 }
 
@@ -85,7 +86,7 @@ func (s *Server) plugins(w http.ResponseWriter, r *http.Request) {
 		s.render(w, "Plugins", errorHTML(err))
 		return
 	}
-	s.render(w, "Plugins", pluginsTable(status.Plugins))
+	s.render(w, "Plugins", pluginsTable(status.ConfiguredPlugins, status.Plugins))
 }
 
 func (s *Server) events(w http.ResponseWriter, r *http.Request) {
@@ -185,11 +186,25 @@ func statCard(label string, value int) template.HTML {
 	return template.HTML(fmt.Sprintf(`<div class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><div class="text-sm text-zinc-400">%s</div><div class="text-3xl font-bold mt-2">%d</div></div>`, template.HTMLEscapeString(label), value))
 }
 
-func pluginsTable(plugins []map[string]any) template.HTML {
+func pluginsTable(configured []map[string]any, statuses []map[string]any) template.HTML {
+	statusByID := map[string]map[string]any{}
+	for _, status := range statuses {
+		statusByID[fmt.Sprint(status["id"])] = status
+	}
 	var b bytes.Buffer
-	b.WriteString(`<h2 class="text-2xl font-semibold mb-4">Plugins</h2><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Health failures</th><th class="p-3 text-left">Last error</th></tr></thead><tbody>`)
-	for _, p := range plugins {
-		b.WriteString(fmt.Sprintf(`<tr class="border-t border-zinc-800"><td class="p-3 font-mono">%s</td><td class="p-3">%v</td><td class="p-3">%v</td><td class="p-3">%v</td><td class="p-3 text-red-400">%s</td></tr>`, esc(p["id"]), p["running"], p["restarts"], p["healthFailures"], esc(p["lastError"])))
+	b.WriteString(`<h2 class="text-2xl font-semibold mb-4">Plugins</h2><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Kind</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Last error</th></tr></thead><tbody>`)
+	for _, p := range configured {
+		id := fmt.Sprint(p["id"])
+		status := statusByID[id]
+		running := false
+		restarts := 0
+		lastError := ""
+		if status != nil {
+			running = fmt.Sprint(status["running"]) == "true"
+			restarts = intFromAny(status["restarts"])
+			lastError = fmt.Sprint(status["lastError"])
+		}
+		b.WriteString(fmt.Sprintf(`<tr class="border-t border-zinc-800"><td class="p-3 font-mono">%s</td><td class="p-3">%s</td><td class="p-3">%s</td><td class="p-3">%v</td><td class="p-3">%v</td><td class="p-3">%d</td><td class="p-3 text-red-400">%s</td></tr>`, esc(id), esc(p["name"]), esc(p["kind"]), p["enabled"], running, restarts, esc(lastError)))
 	}
 	b.WriteString(`</tbody></table></div>`)
 	return template.HTML(b.String())
@@ -239,6 +254,17 @@ func errorHTML(err error) template.HTML {
 
 func esc(v any) string {
 	return template.HTMLEscapeString(fmt.Sprint(v))
+}
+
+func intFromAny(v any) int {
+	switch value := v.(type) {
+	case int:
+		return value
+	case float64:
+		return int(value)
+	default:
+		return 0
+	}
 }
 
 var pageTemplate = template.Must(template.New("page").Parse(`<!doctype html>
