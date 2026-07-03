@@ -3,3 +3,7 @@ dist/
 .env
 coverage/
 /plugin
+/dashboard
+dashboard.log
+.dashboard.pid
+*.db
