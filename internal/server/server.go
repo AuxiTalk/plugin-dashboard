@@ -42,6 +42,8 @@ func NewServer(port string) *Server {
 	mux.HandleFunc("/events", s.events)
 	mux.HandleFunc("/actions", s.actions)
 	mux.HandleFunc("/workflows", s.workflows)
+	mux.HandleFunc("/workflows/edit", s.workflowEdit)
+	mux.HandleFunc("/workflows/save", s.workflowSave)
 	mux.HandleFunc("/workflows/toggle", s.toggleWorkflow)
 	mux.HandleFunc("/logs", s.logs)
 	mux.HandleFunc("/log-stream", s.logStream)
@@ -124,7 +126,7 @@ func (s *Server) workflows(w http.ResponseWriter, r *http.Request) {
 		s.render(w, "Workflows", errorHTML(err))
 		return
 	}
-	s.render(w, "Workflows", workflowsTable(status.Workflows))
+	s.render(w, "Workflows", s.workflowsTable(status.Workflows))
 }
 
 func (s *Server) logs(w http.ResponseWriter, r *http.Request) {
@@ -403,13 +405,119 @@ func actionsTable(actions []map[string]any) template.HTML {
 	return template.HTML(b.String())
 }
 
-func workflowsTable(workflows []map[string]any) template.HTML {
+func (s *Server) workflowEdit(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	var workflow map[string]any
+	if id != "" {
+		status, err := s.fetchStatus(r.Context())
+		if err != nil {
+			s.render(w, "Edit Workflow", errorHTML(err))
+			return
+		}
+		for _, wf := range status.Workflows {
+			if fmt.Sprint(wf["id"]) == id {
+				workflow = wf
+				break
+			}
+		}
+	} else {
+		workflow = map[string]any{
+			"id":      fmt.Sprintf("workflow-%d", time.Now().Unix()),
+			"name":    "New Workflow",
+			"enabled": true,
+			"rules": []map[string]any{{
+				"id":      "rule-1",
+				"enabled": true,
+				"trigger": map[string]any{
+					"eventType": "message.received",
+					"conditions": []map[string]any{{
+						"field": "payload.text",
+						"operator": "equals",
+						"value": "hello",
+					}},
+				},
+				"actions": []map[string]any{{
+					"type": "message.reply",
+					"risk": "low",
+					"payload": map[string]any{
+						"text": "Hello there, {{event.source}}!",
+					},
+				}},
+			}},
+		}
+	}
+	data, _ := json.MarshalIndent(workflow, "", "  ")
+	content := fmt.Sprintf(`<div class="mb-4"><a class="text-sky-400 hover:underline" href="/workflows">← Cancel</a></div><form method="post" action="/workflows/save"><textarea name="json" class="w-full h-[60vh] bg-zinc-950 border border-zinc-800 rounded-2xl p-4 font-mono text-sm mb-4">%s</textarea><button type="submit" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold">Save Workflow</button></form>`, template.HTMLEscapeString(string(data)))
+	s.render(w, "Edit Workflow", template.HTML(content))
+}
+
+func (s *Server) workflowSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	jsonData := r.FormValue("json")
+	var workflow map[string]any
+	if err := json.Unmarshal([]byte(jsonData), &workflow); err != nil {
+		s.render(w, "Error", template.HTML(fmt.Sprintf(`<div class="p-6 bg-red-950 text-red-200 border border-red-900 rounded-2xl">Invalid JSON: %s<br><a href="javascript:history.back()" class="underline mt-4 inline-block">Go back</a></div>`, esc(err))))
+		return
+	}
+
+	// Fetch all workflows to append/replace
+	status, err := s.fetchStatus(r.Context())
+	if err != nil {
+		s.render(w, "Error", errorHTML(err))
+		return
+	}
+
+	workflows := status.Workflows
+	id := fmt.Sprint(workflow["id"])
+	found := false
+	for i, wf := range workflows {
+		if fmt.Sprint(wf["id"]) == id {
+			workflows[i] = workflow
+			found = true
+			break
+		}
+	}
+	if !found {
+		workflows = append(workflows, workflow)
+	}
+
+	payload := map[string]any{"workflows": workflows}
+	body, _ := json.Marshal(payload)
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.coreURL+"/api/workflows/reload", bytes.NewReader(body))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		var errData map[string]any
+		json.NewDecoder(resp.Body).Decode(&errData)
+		s.render(w, "Error", template.HTML(fmt.Sprintf(`<div class="p-6 bg-red-950 text-red-200 border border-red-900 rounded-2xl">Core rejected workflow: %s<br><a href="javascript:history.back()" class="underline mt-4 inline-block">Go back</a></div>`, esc(resp.Status))))
+		return
+	}
+
+	http.Redirect(w, r, "/workflows", http.StatusSeeOther)
+}
+
+func (s *Server) workflowsTable(workflows []map[string]any) template.HTML {
 	var b bytes.Buffer
-	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Workflows</h2><div class="flex gap-2"><input id="workflows-filter" type="text" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" placeholder="Filter..." onkeyup="filterDataRows('workflows-table')"><select id="workflows-enabled" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" onchange="filterDataRows('workflows-table')"><option value="">Any state</option><option value="true">Enabled</option><option value="false">Disabled</option></select></div></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table id="workflows-table" data-text-filter="workflows-filter" data-filters="enabled:workflows-enabled" class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Rules</th></tr></thead><tbody>`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Workflows</h2><div class="flex gap-2"><a href="/workflows/edit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm text-white font-medium">+ New Workflow</a><input id="workflows-filter" type="text" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" placeholder="Filter..." onkeyup="filterDataRows('workflows-table')"><select id="workflows-enabled" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" onchange="filterDataRows('workflows-table')"><option value="">Any state</option><option value="true">Enabled</option><option value="false">Disabled</option></select></div></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"><table id="workflows-table" data-text-filter="workflows-filter" data-filters="enabled:workflows-enabled" class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Rules</th><th class="p-3 text-right">Actions</th></tr></thead><tbody>`)
 	for _, wf := range workflows {
 		rules, _ := wf["rules"].([]any)
 		id := fmt.Sprint(wf["id"])
-		b.WriteString(fmt.Sprintf(`<tr data-enabled="%v" class="border-t border-zinc-800"><td class="p-3 font-mono"><a class="text-sky-400 hover:underline" href="/detail?type=workflow&id=%s">%s</a></td><td class="p-3">%s</td><td class="p-3"><form method="post" action="/workflows/toggle?id=%s&op=%s"><button class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700">%v</button></form></td><td class="p-3">%d</td></tr>`, wf["enabled"], esc(id), esc(id), esc(wf["name"]), esc(id), toggleOp(wf["enabled"]), wf["enabled"], len(rules)))
+		b.WriteString(fmt.Sprintf(`<tr data-enabled="%v" class="border-t border-zinc-800"><td class="p-3 font-mono"><a class="text-sky-400 hover:underline" href="/detail?type=workflow&id=%s">%s</a></td><td class="p-3">%s</td><td class="p-3"><form class="inline" method="post" action="/workflows/toggle?id=%s&op=%s"><button class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700">%v</button></form></td><td class="p-3">%d</td><td class="p-3 text-right"><a href="/workflows/edit?id=%s" class="text-sky-400 hover:underline">Edit</a></td></tr>`, wf["enabled"], esc(id), esc(id), esc(wf["name"]), esc(id), toggleOp(wf["enabled"]), wf["enabled"], len(rules), esc(id)))
 	}
 	b.WriteString(`</tbody></table></div>`)
 	return template.HTML(b.String())
