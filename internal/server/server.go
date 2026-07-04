@@ -39,6 +39,8 @@ func NewServer(port string) *Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.index)
 	mux.HandleFunc("/plugins", s.plugins)
+	mux.HandleFunc("/plugins/configure", s.pluginConfigure)
+	mux.HandleFunc("/plugins/save", s.pluginSave)
 	mux.HandleFunc("/events", s.events)
 	mux.HandleFunc("/actions", s.actions)
 	mux.HandleFunc("/workflows", s.workflows)
@@ -100,6 +102,104 @@ func (s *Server) plugins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.render(w, "Plugins", pluginsTable(status.ConfiguredPlugins, status.Plugins))
+}
+
+func (s *Server) pluginConfigure(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Redirect(w, r, "/plugins", http.StatusSeeOther)
+		return
+	}
+	status, err := s.fetchStatus(r.Context())
+	if err != nil {
+		s.render(w, "Configure Plugin", errorHTML(err))
+		return
+	}
+	var plugin map[string]any
+	for _, p := range status.ConfiguredPlugins {
+		if fmt.Sprint(p["id"]) == id {
+			plugin = p
+			break
+		}
+	}
+	if plugin == nil {
+		s.render(w, "Configure Plugin", template.HTML(`<div class="p-6 bg-red-950 text-red-200 border border-red-900 rounded-2xl">Plugin not found</div>`))
+		return
+	}
+
+	enabled := ""
+	if plugin["enabled"] == true {
+		enabled = "checked"
+	}
+
+	content := fmt.Sprintf(`<div class="mb-4"><a class="text-sky-400 hover:underline" href="/plugins">← Cancel</a></div>
+<form method="post" action="/plugins/save" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+  <input type="hidden" name="id" value="%s">
+  <div class="mb-6">
+    <h3 class="text-xl font-semibold mb-2">Configure %s</h3>
+    <p class="text-zinc-500 text-sm mb-4">Plugin ID: <span class="font-mono">%s</span></p>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" name="enabled" value="true" %s class="w-5 h-5 rounded bg-zinc-950 border-zinc-800 text-emerald-500 focus:ring-emerald-500">
+      <span class="font-medium">Enabled</span>
+    </label>
+  </div>
+  <div class="mb-6">
+    <label class="block font-medium mb-2">Environment Variables (JSON)</label>
+    <p class="text-zinc-500 text-xs mb-2">Provide keys and values as a JSON object.</p>
+    <textarea name="env_json" class="w-full h-48 bg-zinc-950 border border-zinc-800 rounded-xl p-4 font-mono text-sm" spellcheck="false">{}</textarea>
+  </div>
+  <button type="submit" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold text-white">Save & Restart Plugin</button>
+</form>`, esc(id), esc(plugin["name"]), esc(id), enabled)
+
+	s.render(w, "Configure Plugin", template.HTML(content))
+}
+
+func (s *Server) pluginSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	id := r.FormValue("id")
+	enabled := r.FormValue("enabled") == "true"
+	envJSON := r.FormValue("env_json")
+
+	var env map[string]string
+	if strings.TrimSpace(envJSON) != "" {
+		if err := json.Unmarshal([]byte(envJSON), &env); err != nil {
+			s.render(w, "Error", template.HTML(fmt.Sprintf(`<div class="p-6 bg-red-950 text-red-200 border border-red-900 rounded-2xl">Invalid Env JSON: %s<br><a href="javascript:history.back()" class="underline mt-4 inline-block">Go back</a></div>`, esc(err))))
+			return
+		}
+	}
+
+	payload := map[string]any{
+		"id":      id,
+		"enabled": enabled,
+		"env":     env,
+	}
+	body, _ := json.Marshal(payload)
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.coreURL+"/api/plugins/configure", bytes.NewReader(body))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		var errData map[string]any
+		json.NewDecoder(resp.Body).Decode(&errData)
+		s.render(w, "Error", template.HTML(fmt.Sprintf(`<div class="p-6 bg-red-950 text-red-200 border border-red-900 rounded-2xl">Core rejected config: %s<br><a href="javascript:history.back()" class="underline mt-4 inline-block">Go back</a></div>`, esc(resp.Status))))
+		return
+	}
+
+	http.Redirect(w, r, "/plugins", http.StatusSeeOther)
 }
 
 func (s *Server) events(w http.ResponseWriter, r *http.Request) {
@@ -367,7 +467,7 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 		statusByID[fmt.Sprint(status["id"])] = status
 	}
 	var b bytes.Buffer
-	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Plugins</h2><div class="flex gap-2"><input id="plugins-filter" type="text" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" placeholder="Filter..." onkeyup="filterDataRows('plugins-table')"><select id="plugins-running" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" onchange="filterDataRows('plugins-table')"><option value="">Any runtime</option><option value="true">Running</option><option value="false">Stopped</option></select></div></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden" hx-get="/plugins" hx-trigger="every 5s" hx-swap="outerHTML"><table id="plugins-table" data-text-filter="plugins-filter" data-filters="running:plugins-running" class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Kind</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Last error</th></tr></thead><tbody>`)
+	b.WriteString(`<div class="flex items-center justify-between mb-4"><h2 class="text-2xl font-semibold">Plugins</h2><div class="flex gap-2"><input id="plugins-filter" type="text" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" placeholder="Filter..." onkeyup="filterDataRows('plugins-table')"><select id="plugins-running" class="px-3 py-1 bg-zinc-800 rounded-lg text-sm" onchange="filterDataRows('plugins-table')"><option value="">Any runtime</option><option value="true">Running</option><option value="false">Stopped</option></select></div></div><div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden" hx-get="/plugins" hx-trigger="every 5s" hx-swap="outerHTML"><table id="plugins-table" data-text-filter="plugins-filter" data-filters="running:plugins-running" class="w-full text-sm"><thead><tr class="bg-zinc-950"><th class="p-3 text-left">ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Kind</th><th class="p-3 text-left">Enabled</th><th class="p-3 text-left">Running</th><th class="p-3 text-left">Restarts</th><th class="p-3 text-left">Last error</th><th class="p-3 text-right">Actions</th></tr></thead><tbody>`)
 	for _, p := range configured {
 		id := fmt.Sprint(p["id"])
 		status := statusByID[id]
@@ -387,7 +487,7 @@ func pluginsTable(configured []map[string]any, statuses []map[string]any) templa
 		if id == "whatsapp" && running {
 			extra = `<div class="mt-4" hx-get="/whatsapp/qr" hx-trigger="load, every 5s">Loading QR...</div>`
 		}
-		b.WriteString(fmt.Sprintf(`<tr data-running="%v" data-enabled="%v" class="border-t border-zinc-800"><td class="p-3"><a class="font-mono text-sky-400 hover:underline" href="/detail?type=plugin&id=%s">%s</a>%s</td><td class="p-3">%s</td><td class="p-3">%s</td><td class="p-3">%v</td><td class="p-3 %s">%v</td><td class="p-3">%d</td><td class="p-3 text-red-400">%s</td></tr>`, running, p["enabled"], esc(id), esc(id), extra, esc(p["name"]), esc(p["kind"]), p["enabled"], runningClass, running, restarts, esc(lastError)))
+		b.WriteString(fmt.Sprintf(`<tr data-running="%v" data-enabled="%v" class="border-t border-zinc-800"><td class="p-3"><a class="font-mono text-sky-400 hover:underline" href="/detail?type=plugin&id=%s">%s</a>%s</td><td class="p-3">%s</td><td class="p-3">%s</td><td class="p-3">%v</td><td class="p-3 %s">%v</td><td class="p-3">%d</td><td class="p-3 text-red-400">%s</td><td class="p-3 text-right"><a href="/plugins/configure?id=%s" class="text-sky-400 hover:underline">Configure</a></td></tr>`, running, p["enabled"], esc(id), esc(id), extra, esc(p["name"]), esc(p["kind"]), p["enabled"], runningClass, running, restarts, esc(lastError), esc(id)))
 	}
 	b.WriteString(`</tbody></table></div>`)
 	return template.HTML(b.String())
@@ -431,9 +531,9 @@ func (s *Server) workflowEdit(w http.ResponseWriter, r *http.Request) {
 				"trigger": map[string]any{
 					"eventType": "message.received",
 					"conditions": []map[string]any{{
-						"field": "payload.text",
+						"field":    "payload.text",
 						"operator": "equals",
-						"value": "hello",
+						"value":    "hello",
 					}},
 				},
 				"actions": []map[string]any{{
